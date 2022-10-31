@@ -7,8 +7,9 @@ sudo swapoff -a
 sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
 
-#2. Enable OS to support CNI Netwoking 
+#2. Enable OS to support CNI Netwoking. 
 #Link: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+#The iptables proxy depends on iptables, and the CNI plugin may need to ensure that container traffic is made available to iptables
 
 cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
 br_netfilter

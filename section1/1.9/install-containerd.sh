@@ -4,7 +4,8 @@
 #Link: https://kubernetes.io/docs/setup/production-environment/container-runtimes/
 
 
-#Specially in kubernetes, when you are using contianer runtime interface, you must enable kernel  modules 'overlay' and 'br_netfilter' to let the VM iptables to view bridge network. So remember we have to add these kernel modules and also change few kernal paremeters to enable proper communication in kuberntes cluster based VMs. For CKA exam you will not asked to install containerd. but better we must know to check the containerd configuration file. OK let me install those kernel modules and comfigure required kernel parameters for learning. 
+#Specially in kubernetes, when you are using contianer runtime interface, you must enable kernel  modules 'overlay' and 'br_netfilter' to let the VM iptables to view bridge network. So remember we have to add these kernel modules and also change few kernal paremeters to enable proper communication in kuberntes cluster based VMs. 
+#OK let me install those kernel modules and comfigure required kernel parameters for learning.  
 
 cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
 overlay
@@ -37,12 +38,6 @@ echo "Y" | sudo apt install containerd
 sudo mkdir -p /etc/containerd
 containerd config default | sudo tee /etc/containerd/config.toml
 
-#Please note contianerd runtime interface definetly interface with Conrol Groups. WE already learned that countrol group is helping us to assign #resources such CPU and memory to a container.
-#We know there are two major control group managers cgroupfs and systemd.
-#We can configure containerd to use what control group manager if cgroupfs or systemd.  let me show that
-#Lets open the confuration file locate in 
-
-
 #Well we have done everything and now time to restart containerd service and enable it.
 
 sudo systemctl restart containerd
@@ -56,17 +51,17 @@ sudo systemctl enable containerd
 #ctr image pull docker.io/library/hello-world:latest
 #ctr image ls
 
-#Please note for CKA exam we will never install containerd but we may need to work with deciding control group manager. for CKA exam we are allowed to #open kubernetes.io site and refer that when doing the exam. So I always match our lessons with kuberntes documentation pages and that will help you #familair where and what information located in which page. For containerd configuration you can go to the website and simply search for container runtime. 
 
+#We know there are two major control group managers cgroupfs and systemd.
+#We can configure containerd to use what control group manager if cgroupfs or systemd.  containerd default cgroup driver is cgroupfs
 #For CKA exam we must make sure container runtime interface and kubernetes components  use the same control group comanger, else there will be a conflict. 
-#This is a good CKA point for trouble shooting purpose. We will do practical questions on  this in the later lesson.
-
+#This is a good CKA point for trouble shooting purpose. 
 #Lets see how we can enable  containerd to use systemd as cgroup driver
 
-#Go to 
+#Lets edit the configuration file
 sudo vi /etc/containerd/config.toml
 
-#containerd defualt cgroup driver is cgroupfs, I am changing that to systemd for learning purpose
+#I am changing containerd defualt cgroup driver cgroupfs to systemd for learning purpose
 #Find the line SystemdCgroup = false and change the value to true under the section 
 #[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
 SystemdCgroup = true

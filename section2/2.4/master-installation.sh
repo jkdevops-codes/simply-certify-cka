@@ -1,3 +1,64 @@
+############# CONTROL PLANE SETUP USING KUBEADM  ############# 
+
+sudo apt-get update
+
+#1. Disable linux swap and remove any existing swap partitions
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+
+#2. Enable OS to support CNI Netwoking. 
+#Link: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/
+#The iptables proxy depends on iptables, and the CNI plugin may need to ensure that container traffic is made available to iptables. We should change the kernel parameter nf-call-iptables to 1. So this is OS relative changes to be applied in VMs
+
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+sudo sysctl --system
+
+
+#3. Install a Container Runtime ( Containerd )
+#Link: https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+
+sudo apt-get update
+echo "Y" | sudo apt install containerd
+
+cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# Setup required sysctl params, these persist across reboots.
+cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+
+# Apply sysctl params without reboot
+sudo sysctl --system
+
+sudo mkdir -p /etc/containerd
+containerd config default | sudo tee /etc/containerd/config.toml
+
+
+sudo systemctl daemon-reload
+sudo systemctl enable containerd
+sudo systemctl restart containerd
+sudo systemctl status containerd
+
+
+#ps -ef | grep containerd
+
+
 ##Install kubeadm, kubelet, kubectl 
 sudo apt-get update
 sudo apt-get install -y apt-transport-https ca-certificates curl
@@ -13,11 +74,9 @@ sudo apt-get update
 
 #apt list -a kubeadm | head -5
 
-KUBECOMPNENTS_VERSION=1.25.3
+KUBECOMPNENTS_VERSION=1.22.4
 sudo apt-get install -y kubelet=${KUBECOMPNENTS_VERSION}-00 kubeadm=${KUBECOMPNENTS_VERSION}-00 kubectl=${KUBECOMPNENTS_VERSION}-00
-sudo apt-mark hold kubelet kubeadm kubectl #prevent updating the packages automatically
-
-
+sudo apt-mark hold kubelet kubeadm kubectl #prevent updating the packages
 
 #echo "y" | sudo kubeadm reset
 #sudo rm -fr /etc/cni/net.d
@@ -33,8 +92,6 @@ sudo apt-mark hold kubelet kubeadm kubectl #prevent updating the packages automa
 #sudo rm -fr /var/lib/kubelet/kubeadm-flags.env
 #sudo systemctl daemon-reload
 # kubeadm-config.yaml
-
-#https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
 cat <<EOF | tee kubeadm-config.yaml
 kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta3

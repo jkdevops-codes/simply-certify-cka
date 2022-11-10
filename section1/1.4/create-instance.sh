@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ZONE="us-west4-b"
+ZONE="us-west4-a"
 PROJECT_ID=$(gcloud config get-value project)
 MACHINE_TYPE="e2-small"
 INSTANCE_NAME="my-ubuntu-vm"

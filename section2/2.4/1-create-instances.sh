@@ -20,6 +20,7 @@ NETWORK_IP="10.240.0.200"
 
 gcloud  compute --project=${PROJECT_ID} instances create ${INSTANCE_NAME} --zone ${ZONE} \
 --machine-type=${MACHINE_TYPE} --subnet=${SUBNET} \
+--can-ip-forward \
 --tags=${INSTANCE_NAME} \
 --image=${IMAGE_OS} \
 --private-network-ip ${NETWORK_IP} \

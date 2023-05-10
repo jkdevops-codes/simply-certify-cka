@@ -1,54 +1,71 @@
-#Delete PVs and PVCs that you have already created
-k patch pvc pvc-one -p '{"metadata":{"finalizers":null}}'
-k patch pvc pvc-two -p '{"metadata":{"finalizers":null}}'
-k patch pv nfs-volume-1 -p '{"metadata":{"finalizers":null}}'
-k patch pv nfs-volume-2 -p '{"metadata":{"finalizers":null}}'
-
-k delete --all pv,pvc --force --grace-period=0
+#Question: 
+#1. Create a worker node-based directory (/var/web-content) and mount it to a PV called task-pv-volume with storage capacity 5Gi​
+#2.Create a PVC task-pvc-volume in the namespace yellow and allow 500Mi storage ​
+#3. Attach the PVC to a pod called task-pv-pod with the image httpd and mount the volume to container path /usr/local/apache2/htdocs/ ​
 
 
 
+#Answer:
 
-cat <<EOF >> storageclass-nfs.yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
+#1. Go to Worker Node and create the directory /var/web-content
+#2. In Kubernetes Documentation, Search for  "Configure a Pod to Use a PersistentVolume for Storage"
+#3
+cat <<EOF >> task-pv-volume.yml
+apiVersion: v1
+kind: PersistentVolume
 metadata:
-  name: managed-nfs-storage
-provisioner: k8s-sigs.io/nfs-subdir-external-provisioner # or choose another name, must match deployment's env PROVISIONER_NAME'
-parameters:
-  archiveOnDelete: "false"
+  name: task-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/var/web-content"
 EOF
+k apply -f task-pv-volume.yml
 
-
-cat <<EOF >> pvc-three.yaml
+#5.
+cat <<EOF >> task-pvc-volume.yml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pvc-three
+  name: task-pvc-claim
+  namespace: yellow
 spec:
-  storageClassName: managed-nfs-storage
+  storageClassName: manual
   accessModes:
-  - ReadWriteMany
+    - ReadWriteOnce
   resources:
-   requests:
-     storage: 500Mi
+    requests:
+      storage: 500Mi
 EOF
 
-#Create a pod using PVC
-cat <<EOF >> pvc-pod-sc.yaml
+
+#6.
+cat <<EOF >>  task-pv-pod.yml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pvc-pod-sc
+  name: task-pv-pod
+  namespace: yellow
 spec:
-  containers:
-    - name: pvc-pod-sc
-      image: nginx
-      volumeMounts:
-        - mountPath: "/usr/share/nginx/html"
-          name: pv-storage
   volumes:
-    - name: pv-storage
+    - name: task-pv-storage
       persistentVolumeClaim:
-        claimName: pvc-three
+        claimName: task-pvc-claim
+  containers:
+    - name: task-pv-container
+      image: httpd
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/usr/local/apache2/htdocs/"
+          name: task-pv-storage
 EOF
+
+

@@ -1,21 +1,13 @@
 #https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
-KUBECOMPNENTS_VERSION="$(curl -sSL https://dl.k8s.io/release/stable.txt)" #v1.27.1
+KUBECOMPNENTS_VERSION=1.25.4
 cat <<EOF | tee kubeadm-config.yaml
 kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta3
 kubernetesVersion: ${KUBECOMPNENTS_VERSION}
-networking:
-  serviceSubnet: "10.96.0.0/16"
-  podSubnet: "192.168.0.0/24"
 ---
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 cgroupDriver: systemd  
----
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: InitConfiguration
-nodeRegistration:
-  criSocket: "/run/containerd/containerd.sock"
 EOF
 
 sudo kubeadm init --config kubeadm-config.yaml

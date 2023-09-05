@@ -42,6 +42,10 @@ sudo tar Cxzvf /usr/local containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
 
 #4. Setup Containerd Service
 wget https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+
+#NOTE: Some time if you cannot download the file copy the content from the link https://github.com/containerd/containerd/blob/main/containerd.service
+#and create a file containerd.service using VIM
+
 sudo mv  containerd.service /lib/systemd/system
 sudo systemctl daemon-reload
 sudo systemctl enable --now containerd

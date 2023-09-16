@@ -6,7 +6,6 @@ PROJECT_ID=$(gcloud config get-value project)
 MACHINE_TYPE="e2-medium"
 SUBNET="kubeadm-nodes-subnet"
 NODE_SUBNET_RANGE="10.240.0.0/24"
-#IMAGE_OS="projects/ubuntu-os-cloud/global/images/ubuntu-2004-focal-v20221015"
 IMAGE_OS="projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20230114"
 
 #Create VPC Network and subnet range for nodes
@@ -67,4 +66,3 @@ gcloud compute firewall-rules create kubeadm-allow-all --allow all --network kub
 
 #gcloud compute instances list
 #gcloud compute ssh ${INSTANCE_NAME}
-

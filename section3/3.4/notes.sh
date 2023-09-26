@@ -89,13 +89,15 @@ EOF
 
 
 k logs -f command-demo
+#----------------------
 
+k delete po command-demo #Please delete first before continue
 
 cat <<EOF > command-demo1.yaml
 apiVersion: v1
 kind: Pod
 metadata:
-  name: command-demo
+  name: command-demo-1
   labels:
     purpose: demonstrate-command
 spec:
@@ -108,7 +110,7 @@ spec:
 EOF
 
 k apply -f command-demo1.yaml
-k logs command-demo
+k logs command-demo-1
 
 
 

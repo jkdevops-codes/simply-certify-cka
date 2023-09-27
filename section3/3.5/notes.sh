@@ -5,7 +5,7 @@ metadata:
   name: test-pd
 spec:
   containers:
-  - image: registry.k8s.io/test-webserver
+  - image: nginx
     name: test-container
     volumeMounts:
     - mountPath: /cache
@@ -77,7 +77,7 @@ spec:
     volumeMounts:
     - mountPath: /work-dir/
       name: my-volume
-    command: ["sh", "-c", "echo hello > /work-dir/index.html ;sleep 3600;"]
+    command: ["sh", "-c", "echo hello world > /work-dir/index.html ;sleep 3600;"]
   volumes:
   - name: my-volume
     emptyDir: {}

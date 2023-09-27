@@ -56,6 +56,7 @@ EOF
 
 
 # Method 2:
+API_SERVER="https://10.240.0.200:6443" 
 kubectl config set-cluster kubernetes --certificate-authority=ca.crt --embed-certs=true --server=${API_SERVER} --kubeconfig=kubelet.conf
 kubectl config set-credentials system:node:${NODE} --client-certificate=${NODE}.crt --client-key=${NODE}.key --embed-certs=true --kubeconfig=kubelet.conf
 kubectl config set-context default --cluster=kubernetes --user=system:node:${NODE} --kubeconfig=kubelet.conf
@@ -71,7 +72,7 @@ sudo cp kubelet.conf  /etc/kubernetes/
 #1. Modify kubelet service file
 
 #Method 1: 
-vim /lib/systemd/system/kubelet.service
+sudo vim /lib/systemd/system/kubelet.service
 #......
 [Unit]
 Description=kubelet: The Kubernetes Node Agent
@@ -80,7 +81,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf  \\ 
+ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf  \\
 --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock  \\
 --cgroup-driver=systemd
 Restart=always

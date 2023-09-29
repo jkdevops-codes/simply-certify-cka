@@ -37,7 +37,9 @@ k logs emptydir-pod
 
 
 #Multi Container Pod
-cat <<EOF > emptydir-pod.yaml
+
+k delete po emptydir-pod --force  #Delete the pod before continue
+cat <<EOF > emptydir-pod.yaml  #Please delete the existing pod before continue using aboove command
 apiVersion: v1
 kind: Pod
 metadata:

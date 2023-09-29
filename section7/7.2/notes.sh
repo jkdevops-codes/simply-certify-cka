@@ -8,6 +8,8 @@
 #Answer:
 
 #1. Go to Worker Node and create the directory /var/web-content
+    sudo mkdir -p /var/web-content
+    sudo chmod -R 777 /var/web-content
 #2. In Kubernetes Documentation, Search for  "Configure a Pod to Use a PersistentVolume for Storage"
 #3
 cat <<EOF >> task-pv-volume.yml
@@ -44,6 +46,8 @@ spec:
       storage: 500Mi
 EOF
 
+k apply -f task-pvc-volume.yml
+
 
 #6.
 cat <<EOF >>  task-pv-pod.yml
@@ -67,5 +71,7 @@ spec:
         - mountPath: "/usr/local/apache2/htdocs/"
           name: task-pv-storage
 EOF
+k apply -f task-pv-pod.yml
+
 
 

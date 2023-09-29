@@ -42,7 +42,7 @@ sudo apt-get update && sudo apt-get install -y kubeadm=1.27.3-00 && \
 sudo apt-mark hold kubeadm
 
 #4. Upgrade kubeadm
-sudo kubeadm upgrade apply
+sudo kubeadm upgrade node
 
 #5. Upgrade kubelet and kubeclt
 sudo apt-mark unhold kubelet kubectl && \
@@ -59,7 +59,7 @@ k uncordon m-2
 
 
 #####   C. Upgrade Worker  Node  ######
-#1. Drain control plane
+#1. Drain Worker Node
 k drain w-1  --ignore-daemonsets
 
 #2. Install latest kubeadm
@@ -79,5 +79,5 @@ sudo apt-mark hold kubelet kubectl
 sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 
-#7.uncordon control plane
+#7.uncordon Worker Node
 k uncordon w-1

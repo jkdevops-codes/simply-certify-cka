@@ -48,4 +48,7 @@ EOF
 
 
 
+k delete -f simple-pod.yaml
+k delete -f limitrange.yaml
+
 

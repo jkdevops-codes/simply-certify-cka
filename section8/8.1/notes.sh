@@ -3,44 +3,48 @@ Authentication, Authorization
 #refer the document 
 https://kubernetes.io/docs/concepts/security/controlling-access/
 
+#Create user key and CSR
+openssl genrsa -out user1.key 2048
+openssl req  -new -key user1.key -out user1.csr -subj="/CN=user1/O=devops-team"
 
-openssl genrsa -out david.key 2048
-openssl req -new -key david.key -out david.csr -subj "/CN=david/O=devops-team"
 
 
-cat <<EOF | tee david-csr.yaml
+#Create CertificateSigningRequest object
+cat <<EOF | tee user1-csr.yaml
 apiVersion: certificates.k8s.io/v1
 kind: CertificateSigningRequest
 metadata:
-  name: david-csr
+  name: user1-csr
 spec:
-  request: $(cat david.csr | base64 -w 0)
+  request: $(cat user1.csr | base64 -w 0)
+  signerName: kubernetes.io/kube-apiserver-client
   usages:
   - client auth
 EOF
+k apply -f user1-csr.yaml
 
 
-k apply -f david-csr.yaml
-
+#Approve CSR
 k get csr
+k get csr user1-csr -oyaml
+k certificate approve user1-csr
+k get csr user1-csr -oyaml
 
-kubectl certificate approve david-csr
+#Obtain generated certificate 
+k get csr user1-csr -o jsonpath='{.status.certificate}' | base64 -d > user1.crt
 
-kubectl get csr
 
-kubectl get csr david-csr -o jsonpath='{.status.certificate}' | base64 -d > david.crt
-
-kubectl config set-credentials david --client-certificate=david.crt --client-key=david.key
-kubectl config set-context david-context --cluster= --namespace=lfs158 --user=bob
-
-kubectl config set-cluster kubernetes --certificate-authority=ca.crt --embed-certs=true --server=${API_SERVER} --kubeconfig=kubelet.conf
-kubectl config set-credentials david --client-certificate=david.crt --client-key=david.key --embed-certs=true --kubeconfig=david.conf
-kubectl config set-context david-context --cluster=kubernetes --user=david --kubeconfig=david.conf
+#Add the user context to current config
+k config set-credentials user1 --client-certificate=user1.crt --client-key=user1.key --embed-certs=true
+k config set-context user1-context --cluster=kubernetes --namespace=default --user=user1
 
 
 
+#Check the config file 
+k config viw
 
-In order to be authorized by the Node authorizer, kubelets must use a credential that identifies them as being in the system:nodes group
+#Try to create a pod using new user context
+k get pods --context=user1-context 
 
-system:masters group which is hardcoded into the Kubernetes API server source code as having unrestricted rights to the Kubernetes API server.
-
+#Check the permission user1 having
+k auth can-i create pod

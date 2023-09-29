@@ -1,6 +1,7 @@
-#:::::::::: ETCD Backup :::::::::: #
+#:::::::::: ETCD Backup & Restore :::::::::: #
 
-#1. Go through ETCD server and certificates
+
+#1. Go through the ETCD server and certificates
 ls /etc/kubernetes/pki/etcd/
 #Cluster CA Certificate
 /etc/kubernetes/pki/etcd/ca.crt
@@ -9,29 +10,29 @@ ls /etc/kubernetes/pki/etcd/
 #Health Check Key
 /etc/kubernetes/pki/etcd/healthcheck-client.key
 
-#2. Install etcd client
+#2. Install the ETCD client.
 sudo apt  install etcd-client
 
 
-#3. Find the EndPoint of the cluster 
+#3. Find the endpoint of the ETCD cluster
 sudo vim /etc/kubernetes/manifests/kube-apiserver.yaml
  - --etcd-servers=https://127.0.0.1:2379
 
-#4. Check ETCD  Health
+#4. Check the ETCD  health
 sudo ETCDCTL_API=3 etcdctl --endpoints https://127.0.0.1:2379 \
 --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
 --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \
 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 endpoint health
 
-#5. Find the ETCD Cluster Status
+#5. Find the ETCD cluster status
 sudo ETCDCTL_API=3 etcdctl --endpoints https://127.0.0.1:2379 \
 --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
 --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \
 --cacert=/etc/kubernetes/pki/etcd/ca.crt \
 --write-out=table  endpoint status
 
-#5. Find the ETCD Members List
+#5. Find the ETCD members list
 sudo ETCDCTL_API=3 etcdctl --endpoints https://127.0.0.1:2379 \
 --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
 --key=/etc/kubernetes/pki/etcd/healthcheck-client.key \
@@ -39,13 +40,10 @@ sudo ETCDCTL_API=3 etcdctl --endpoints https://127.0.0.1:2379 \
 --write-out=table  member list
 
 
-#6. Create and run some pods before taking etcd snapshot
-k run prod-pod1 --image=nginx 
-k run prod-pod2 --image=nginx 
-k run prod-pod3 --image=nginx 
-k run prod-pod4 --image=nginx 
+#6. Check the running pods
 
-#7. Take etcd snapshot 
+
+#7. Take a snapshot from  ETCD data
 sudo mkdir  /var/etcd-backup
 sudo ETCDCTL_API=3 etcdctl --endpoints https://127.0.0.1:2379 \
 --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt \

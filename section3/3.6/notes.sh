@@ -46,3 +46,5 @@ spec:
       failureThreshold: 10
 EOF
 
+k apply -f startup-test.yaml
+

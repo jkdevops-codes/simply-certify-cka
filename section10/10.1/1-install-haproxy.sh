@@ -8,7 +8,7 @@ sudo apt-get install haproxy -y
 
 
 #Edit haproxy configuration file
-vi /etc/haproxy/haproxy.cfg
+sudo vi /etc/haproxy/haproxy.cfg
 
 ## Add following lines in the end of the file
 frontend fe-apiserver

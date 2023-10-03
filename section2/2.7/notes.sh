@@ -62,42 +62,19 @@ kubectl config set-credentials system:node:${NODE} --client-certificate=${NODE}.
 kubectl config set-context default --cluster=kubernetes --user=system:node:${NODE} --kubeconfig=kubelet.conf
 kubectl config use-context default --kubeconfig=kubelet.conf
 
-
-#4. Copy the kubelet.conf to /etc/kubernetes/kubelet.conf
-sudo cp kubelet.conf  /etc/kubernetes/
-
-
-###########    CONFIGURE KUBELET SYSTEMD SERVICE FILE    ##########
-
-#1. Modify kubelet service file
-
-#Method 1: 
-sudo vim /lib/systemd/system/kubelet.service
-#......
-[Unit]
-Description=kubelet: The Kubernetes Node Agent
-Documentation=https://kubernetes.io/docs/home/
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock  --cgroup-driver=systemd
-Restart=always
-StartLimitInterval=0
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-#......
-
-
-sudo systemctl daemon-reload
+## SESSNIO 2.7 CONTIUE #########
+#1. Check the status of kubelet and restart the kubelet
+sudo systemctl status kubelet
 sudo systemctl restart kubelet
 sudo systemctl status kubelet
 
-#Method 2:-
-sudo vim /lib/systemd/system/kubelet.service
+#Check the log and find what went wrong
+journalctl -xeu kubelet
+tail -f /var/log/syslog
 
+#2. We will get container runtime address error, to solve that,
+#add the container runtime parameters  /lib/systemd/system/kubelet.service and restart the kubelet again 
+sudo vim /lib/systemd/system/kubelet.service
 #......
 [Unit]
 Description=kubelet: The Kubernetes Node Agent
@@ -106,8 +83,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf  \
---config=/var/lib/kubelet/config.yaml \
+ExecStart=/usr/bin/kubelet --container-runtime=remote \
 --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
 Restart=always
 StartLimitInterval=0
@@ -117,20 +93,135 @@ RestartSec=10
 WantedBy=multi-user.target
 #......
 
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+sudo systemctl status kubelet
+
+#Check the logs 
+tail -f /var/log/syslog
+
+
+#3. Now we will get CNI initialization error, But without solving that I am going to copy the
+#kubelet.conf file I created to  /etc/kubernetes/kubelet.conf
+#Note: kubeadm will solve the CNI issue and we dont want to solve that
+sudo cp kubelet.conf /etc/kubernetes/kubelet.conf
+
+#4. Now add the  kubelet.conf reference to kubelet.service and restart kubelet
+sudo vim /lib/systemd/system/kubelet.service
+
+#......
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=https://kubernetes.io/docs/home/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/kubelet --container-runtime=remote \
+--container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
+--kubeconfig=/etc/kubernetes/kubelet.conf
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+#......
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+sudo systemctl status kubelet
+
+
+#5. Check if the worker node is joined to control plane
+kubectl get nodes #run in the control planes master-1
+
+#6. Check the logs 
+tail -f /var/log/syslog
+
+
+#7. Now we will get Control Group Driver based error. Lets set the kubelet to support systemd as cgroup driver.
+
+#7.1: Create a KubeletConfiguration called config.yaml in /var/lib/kubelet/config.yaml
 cat <<EOF | sudo tee /var/lib/kubelet/config.yaml
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 cgroupDriver: systemd
 EOF
 
+#7.2: Modify the kubelet.service to refer the config file
+sudo vim /lib/systemd/system/kubelet.service
+
+#......
+[Unit]
+Description=kubelet: The Kubernetes Node Agent
+Documentation=https://kubernetes.io/docs/home/
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/kubelet --container-runtime=remote \
+--container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
+--kubeconfig=/etc/kubernetes/kubelet.conf \ 
+--config=/var/lib/kubelet/config.yaml
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+#......
+
+
 sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 sudo systemctl status kubelet
 
-#2. Check the Logs
+#Check the logs 
 tail -f /var/log/syslog
-#Note: There will be an error calle "cni plugin not initialized", We dont have the calico CNI in our /opt/cni/bin folder and also calico configuration file in /etc/cni/net.d folder
 
+
+#8. Check the master node if the worker node is joined
+kubectl get nodes
+
+
+#9. Remove  the /var/lib/kubelet/config.yaml and restart kubelet, so that worker node will goto Not Ready status
+sudo rm -fr /var/lib/kubelet/config.yaml
+sudo systemctl restart kubelet
+
+#10. Recreate /var/lib/kubelet/config.yaml with more options
+cat <<EOF | sudo tee /var/lib/kubelet/config.yaml
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/ca.crt"
+authorization:
+  mode: Webhook
+clusterDomain: "cluster.local"
+cgroupDriver: systemd
+clusterDNS:
+  - "10.96.0.10"
+resolvConf: "/run/systemd/resolve/resolv.conf"
+EOF
+
+#Also copy the ca.crt file to /etc/kubernetes/pki/ca.crt 
+sudo mkdir -p /etc/kubernetes/pki/
+sudo cp ca.crt /etc/kubernetes/pki/ca.crt 
+
+#Restart the kubelet 
+sudo systemctl restart kubelet
+tail -f /var/log/syslog
+
+#Remove node from control plane. Go to master-1 and execute the following 
+NODE="worker-3"
+kubectl drain ${NODE}  --ignore-daemonsets --delete-local-data
+kubectl delete node ${NODE}
 
 
 
@@ -145,67 +236,3 @@ tail -f /var/log/syslog
 
 #2. Install the Calico CNI plugin binaries
 #Refer: https://projectcalico.docs.tigera.io/getting-started/kubernetes/hardway/install-cni-plugin
-
-curl -L -o /opt/cni/bin/calico https://github.com/projectcalico/cni-plugin/releases/download/v3.20.6/calico-amd64
-sudo chmod 755 /opt/cni/bin/calico
-curl -L -o /opt/cni/bin/calico-ipam https://github.com/projectcalico/cni-plugin/releases/download/v3.20.6/calico-ipam-amd64
-sudo chmod 755 /opt/cni/bin/calico-ipam
-
-
-#3. Restart kubelet
-sudo systemctl restart kubelet
-sudo systemctl status kubelet
-
-#4. Check Logs
-tail -f /var/log/syslog
-
-
-
-
---cgroup-driver
-
-tail -f /var/log/syslog
-
-ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/kubelet-config.yaml --container-runtime=remote --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
-ExecStart=/usr/bin/kubelet --kubeconfig=/etc/kubernetes/kubelet.conf  --container-runtime=remote --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
-
-
-API_SERVER="https://10.240.0.200:6443"
-NODE="calico"
-
-
-openssl genrsa -out ${NODE}.key 2048
-openssl req -new -key ${NODE}.key -out ${NODE}.csr -subj="/CN={NODE}/O=kubernetes"
-openssl x509 -req -CA ca.crt -CAkey ca.key  -CAcreateserial -days 365 -in ${NODE}.csr -out ${NODE}.crt
-
-kubectl config set-cluster kubernetes --certificate-authority=ca.crt --embed-certs=true --server=${API_SERVER} --kubeconfig=calico-kubeconfig
-kubectl config set-credentials ${NODE} --client-certificate=${NODE}.crt --client-key=${NODE}.key --embed-certs=true --kubeconfig=calico-kubeconfig
-kubectl config set-context default --cluster=kubernetes --user=${NODE}  --kubeconfig=calico-kubeconfig
-kubectl config use-context default --kubeconfig=calico-kubeconfig
-
-
-
-https://github.com/projectcalico/calico/releases/download/v3.24.5/calicoctl-linux-amd64
-
-
-Install the plugin
-curl -L -o /opt/cni/bin/calico https://github.com/projectcalico/cni-plugin/releases/download/v3.20.6/calico-amd64
-chmod 755 /opt/cni/bin/calico
-curl -L -o /opt/cni/bin/calico-ipam https://github.com/projectcalico/cni-plugin/releases/download/v3.20.6/calico-ipam-amd64
-chmod 755 /opt/cni/bin/calico-ipam
-
-
-#1. Check the worker node worker-1 which was joined to kubeadm based cluster using kubeadm join command
-#    Check the kubeconfig file
-#    Check the node certifcate
-#openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
-#        [Subject: O = system:nodes, CN = system:node:worker-1]
-
-#3. Copy the  Certificate Authority files ( /etc/kubernetes/pki/ca.crt, /etc/kubernetes/pki/ca.key ) from master to worker node which we are going to join to cluster. In my case worker-2
-
-#4. Create a private key and sign it by ca.key
-
-1. CNI relative paths re /opt/cni/bin where all CNI binaries located and /etc/cni/net.d where CNI plugin configuration located
-2. Once you install containerd /etc/cni/net.d path will be automatically generated but empty
-3. When we install kubelet /opt/cni/bin folder will be created with CNI supported files
-4.  

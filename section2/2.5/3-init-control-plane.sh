@@ -1,5 +1,5 @@
 #https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
-KUBECOMPNENTS_VERSION=1.25.4
+KUBECOMPNENTS_VERSION=1.28.7-1.1
 cat <<EOF | tee kubeadm-config.yaml
 kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta3

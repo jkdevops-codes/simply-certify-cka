@@ -1,9 +1,9 @@
 #https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/configure-cgroup-driver/
-KUBECOMPNENTS_VERSION=1.28.7-1.1
+# March-2024 : 
+#Please note I have used version in my video training and don't use that in the below configuration file.
 cat <<EOF | tee kubeadm-config.yaml
 kind: ClusterConfiguration
 apiVersion: kubeadm.k8s.io/v1beta3
-kubernetesVersion: ${KUBECOMPNENTS_VERSION}
 ---
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1

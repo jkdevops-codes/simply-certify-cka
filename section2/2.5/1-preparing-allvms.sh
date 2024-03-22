@@ -36,7 +36,7 @@ sudo sysctl --system
 #3. Install Containerd
 #Refer: https://github.com/containerd/containerd/blob/main/docs/getting-started.md
 
-CONTAINERD_VERSION="1.6.20"
+CONTAINERD_VERSION="1.7.13"
 wget https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
 sudo tar Cxzvf /usr/local containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
 
@@ -54,7 +54,7 @@ sudo systemctl enable --now containerd
 #5 Install runc.
 #To check recent version Refer: https://github.com/opencontainers/runc/tags  
 #Note: containerd does not include runc and we have to install seperately. But containerd.io fro docker included runc as well.
-RUNC_VERSION="1.1.7"
+RUNC_VERSION="1.1.12"
 wget https://github.com/opencontainers/runc/releases/download/v${RUNC_VERSION}/runc.amd64
 sudo install -m 755 runc.amd64 /usr/local/sbin/runc
 

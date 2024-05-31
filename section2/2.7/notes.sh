@@ -2,16 +2,19 @@
 
 #1. Go to Control Plane and copy the CA files (ca.key, ca.crt)
 cd $HOME/
-sudo cp /etc/kubernetes/pki/ca.key . #copy the certificates to your home directory
+#copy the certificates to your home directory
+sudo cp /etc/kubernetes/pki/ca.key . 
 sudo cp /etc/kubernetes/pki/ca.crt .
-sudo chown $(id -un):$(id -gn) ca.key #change the ownership to current user
+#change the ownership to current user
+sudo chown $(id -un):$(id -gn) ca.key 
 sudo chown $(id -un):$(id -gn) ca.crt
 
 NODE="worker-3" 
 ZONE="us-west4-b"
 
-echo "Y" | gcloud compute scp ca.key  $(id -un)@${NODE}:\~ --zone=${ZONE} #copy the files to NODE
+echo "Y" | gcloud compute scp ca.key  $(id -un)@${NODE}:\~ --zone=${ZONE}
 echo "Y" |  gcloud compute scp ca.crt  $(id -un)@${NODE}:\~ --zone=${ZONE}
+#copy the files to NODE
 #Note : If you have permission issue when copy a file, please run 'gcloud auth login' in control plane
 
 
@@ -83,8 +86,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/kubelet --container-runtime=remote \
---container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
+ExecStart=/usr/bin/kubelet --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock
 Restart=always
 StartLimitInterval=0
 RestartSec=10
@@ -117,9 +119,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/kubelet --container-runtime=remote \
---container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
---kubeconfig=/etc/kubernetes/kubelet.conf
+ExecStart=/usr/bin/kubelet --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock --kubeconfig=/etc/kubernetes/kubelet.conf 
 Restart=always
 StartLimitInterval=0
 RestartSec=10
@@ -161,10 +161,8 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/kubelet --container-runtime=remote \
---container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
---kubeconfig=/etc/kubernetes/kubelet.conf \ 
---config=/var/lib/kubelet/config.yaml
+
+ExecStart=/usr/bin/kubelet --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock --kubeconfig=/etc/kubernetes/kubelet.conf --config=/var/lib/kubelet/config.yaml
 Restart=always
 StartLimitInterval=0
 RestartSec=10
@@ -178,7 +176,7 @@ sudo systemctl daemon-reload
 sudo systemctl restart kubelet
 sudo systemctl status kubelet
 
-#Check the logs 
+#Check the logs   
 tail -f /var/log/syslog
 
 
